@@ -1,10 +1,12 @@
 # Reverse_Sensor
-Reverse Sensor using Arduino 
-###################
-
-
+Reverse Sensor using Arduino
 
 ###################
+
+
+
+###################
+
 Version 2
 Changes in the environement:
 - 2 LEDs
@@ -14,6 +16,7 @@ Code Tasks:
 - Add header that will include defineds
 - read https://playground.arduino.cc/Main/SevenSegmentLibrary 
 ###################
+
 Version 1
 First working environement main Componenet: 
 - Arduino
