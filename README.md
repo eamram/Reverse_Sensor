@@ -15,6 +15,7 @@ Code chnages comments: TBD
 Code Tasks: 
 - Add header that will include defineds
 - read https://playground.arduino.cc/Main/SevenSegmentLibrary 
+
 ###################
 
 Version 1
