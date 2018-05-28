@@ -29,7 +29,9 @@ TM1637Display display(DISPLAY_CLK_PIN, DISPLAY_DIO_PIN);
 int cycle_cnt;
 int sample_id;
 int dist_left[SONAR_NOF_SAMPLES];
+int dist_left_avg;
 int dist_right[SONAR_NOF_SAMPLES];
+int dist_right_avg;
 int dist_min;
 
 
@@ -72,13 +74,14 @@ void loop() {
     // Calculate average distance samples and call dispaly and beep functions
     if (sample_id == 0 )
     {
-        dist_min = min((dist_left[0]+dist_left[1]+dist_left[2])/3,
-                       (dist_right[0]+dist_right[1]+dist_right[2])/3);
+        dist_left_avg = (dist_left[0]+dist_left[1]+dist_left[2])/3;
+        dist_right_avg =  (dist_right[0]+dist_right[1]+dist_right[2])/3;
+        dist_min = min(dist_left_avg, dist_right_avg);
 
         // Print to serial port
-        Serial.print(dist_left);
+        Serial.print(dist_left_avg);
         Serial.println(" left cm");
-        Serial.print(dist_right);
+        Serial.print(dist_right_avg);
         Serial.println(" right cm");
         Serial.println("----------");
         Serial.print(dist_min);
