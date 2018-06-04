@@ -12,9 +12,9 @@
 #define TRIGGER_PIN_LEFT         4
 #define ECHO_PIN_LEFT            5
 #define MAX_DISTANCE           400
-#define BUZZ_PIN                 7
 #define DISPLAY_CLK_PIN          8
 #define DISPLAY_DIO_PIN          9
+#define BUZZ_PIN                10
 #define SERIAL_COM_RATE     115200
 #define SONAR_SAMPLE_TIME      150 // [mSec]
 #define SONAR_NOF_SAMPLES        3
