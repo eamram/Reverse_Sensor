@@ -84,7 +84,10 @@ void beep(int mode, int duration)
 void setup() 
 {
     Serial.begin(SERIAL_COM_RATE);
-    pinMode(BUZZ_PIN,OUTPUT);
+    pinMode(BUZZ_PIN, OUTPUT);
+    pinMode(LED_A_PIN, OUTPUT);
+    pinMode(LED_B_PIN, OUTPUT);
+    pinMode(LED_C_PIN, OUTPUT);    
     display.setBrightness(0x7);  //set the diplay to maximum brightness 
     cycle_cnt = 0;
 }
