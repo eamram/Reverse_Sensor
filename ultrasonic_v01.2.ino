@@ -35,8 +35,8 @@
 //           GLOBAL VARIABLES DEFINITION             //
 ///////////////////////////////////////////////////////
 NewPing sonar_a(TRIGGER_PIN_A, ECHO_PIN_A, MAX_DISTANCE);
-NewPing sonar_b(TRIGGER_PIN_B, ECHO_PIN_B, MAX_DISTANCE);
-NewPing sonar_c(TRIGGER_PIN_C, ECHO_PIN_C, MAX_DISTANCE);
+//NewPing sonar_b(TRIGGER_PIN_B, ECHO_PIN_B, MAX_DISTANCE);
+//NewPing sonar_c(TRIGGER_PIN_C, ECHO_PIN_C, MAX_DISTANCE);
 TM1637Display display(DISPLAY_CLK_PIN, DISPLAY_DIO_PIN);
 int cycle_cnt;
 int sample_id;
@@ -100,25 +100,26 @@ void loop() {
     // Variable Initialization
     sample_id = (cycle_cnt % SONAR_NOF_SAMPLES);
     dist_a[sample_id] = sonar_a.ping_cm();
-    dist_b[sample_id]= sonar_b.ping_cm();
-    dist_c[sample_id]= sonar_c.ping_cm();
+    //dist_b[sample_id]= sonar_b.ping_cm();
+    //dist_c[sample_id]= sonar_c.ping_cm();
     
     // Calculate average distance samples and call dispaly and beep functions
     if (sample_id == 0 )
     {
         dist_a_avg = (dist_a[0]+dist_a[1]+dist_a[2])/3;
-        dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;
-        dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
-        dist_min = min(dist_a_avg, dist_b_avg);
-        dist_min = min(dist_min, dist_c_avg);
+        //dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;
+        //dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
+        //dist_min = min(dist_a_avg, dist_b_avg);
+        //dist_min = min(dist_min, dist_c_avg);
+        dist_min = dist_a_avg;        
 
         // Print to serial port
-        Serial.print(dist_a_avg);
-        Serial.println(" a cm");
-        Serial.print(dist_b_avg);
-        Serial.println(" b cm");
-        Serial.print(dist_c_avg);
-        Serial.println(" c cm");
+        Serial.print(dist_a[0]);
+        Serial.println(" a[0] cm");
+        Serial.print(dist_a[1]);
+        Serial.println(" a[1] cm");
+        Serial.print(dist_a[2]);
+        Serial.println(" a[2] cm");
         Serial.println("----------");
         Serial.print(dist_min);
         Serial.println(" cm min");
