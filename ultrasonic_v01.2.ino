@@ -19,16 +19,19 @@
 #define LED_A_PIN               11
 #define LED_B_PIN               12
 #define LED_C_PIN               13
-#define MAX_DISTANCE           400
-#define DISTANCE_LEVEL_A        40
-#define DISTANCE_LEVEL_B        20
-#define DISTANCE_LEVEL_C        15
+#define MAX_DISTANCE           400  // [cm]
+#define DISTANCE_LEVEL_A        40  // [cm]
+#define DISTANCE_LEVEL_B        20  // [cm]
+#define DISTANCE_LEVEL_C        15  // [cm]
+#define DISPLAY_DIST_GAP         5  // [cm]
 #define SERIAL_COM_RATE     115200
 #define SONAR_SAMPLE_TIME      150 // [mSec]
 #define SONAR_NOF_SAMPLES        3
 #define BEEP_MODE_DISABLED       0
 #define BEEP_MODE_EN_FREQ        1
 #define BEEP_MODE_EN_CONST       2
+#define DISPLAY_OFF              0
+#define DISPLAY_ON               1
 
 
 ///////////////////////////////////////////////////////
@@ -47,6 +50,8 @@ int dist_b_avg;
 int dist_c[SONAR_NOF_SAMPLES];
 int dist_c_avg;
 int dist_min;
+int display_number;
+char display_data[] = {0x0, 0x0, 0x0, 0x0};
 
 
 ///////////////////////////////////////////////////////
@@ -77,6 +82,37 @@ void beep(int mode, int duration)
     }    
 }
 
+///////////////////////////////////////////////////////
+//                   displayHandler()                //
+///////////////////////////////////////////////////////
+void displayHandler(int mode, int number)
+{
+    int remainder,
+        upper_display_number,
+        lower_display_number;
+        
+    
+    if ( mode == DISPLAY_OFF )
+    {
+        display.setSegments(display_data);    
+    }
+    else
+    {
+        remainder = number % DISPLAY_DIST_GAP;
+        lower_display_number = number - remainder;
+        upper_display_number = lower_display_number + DISPLAY_DIST_GAP;
+        if (remainder <= (DISPLAY_DIST_GAP / 2 ) )
+        {
+            display_number = lower_display_number;
+        }
+        else
+        {
+            display_number = upper_display_number;
+        }
+        display.showNumberDec(display_number);      
+    }
+}
+
 
 ///////////////////////////////////////////////////////
 //                SETUP()                            //
@@ -101,7 +137,7 @@ void loop() {
     sample_id = (cycle_cnt % SONAR_NOF_SAMPLES);
     dist_a[sample_id] = sonar_a.ping_cm();
     dist_b[sample_id]= sonar_b.ping_cm();
-    dist_c[sample_id]= sonar_c.ping_cm();
+//    dist_c[sample_id]= sonar_c.ping_cm();
     
     // Calculate average distance samples and call dispaly and beep functions
     if (sample_id == 0 )
@@ -110,7 +146,7 @@ void loop() {
         dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;
         dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
         dist_min = min(dist_a_avg, dist_b_avg);
-        dist_min = min(dist_min, dist_c_avg);
+   //     dist_min = min(dist_min, dist_c_avg);
 
         // Print to serial port
         Serial.print(dist_a_avg);
@@ -123,16 +159,14 @@ void loop() {
         Serial.print(dist_min);
         Serial.println(" cm min");
         Serial.println("----------");
-
-        display.showNumberDec(dist_min);
-
-
+      
         if (dist_min < DISTANCE_LEVEL_C)
         {
             beep(BEEP_MODE_EN_CONST, 0);
             digitalWrite(LED_A_PIN, HIGH);  
             digitalWrite(LED_B_PIN, HIGH);  
-            digitalWrite(LED_C_PIN, HIGH);  
+            digitalWrite(LED_C_PIN, HIGH);
+            displayHandler(DISPLAY_ON ,dist_min);
             //beep(50);
             // digitalWrite(redLed, HIGH);   // turn the LED on (HIGH is the voltage level)
             //  digitalWrite(greenLed, HIGH);   // turn the LED on (HIGH is the voltage level)
@@ -143,6 +177,7 @@ void loop() {
             digitalWrite(LED_A_PIN, HIGH);  
             digitalWrite(LED_B_PIN, HIGH);  
             digitalWrite(LED_C_PIN, LOW);             
+            displayHandler(DISPLAY_ON ,dist_min);       
             //beep(100);
             // digitalWrite(greenLed, HIGH);   // turn the LED on (HIGH is the voltage level)
         }
@@ -152,16 +187,17 @@ void loop() {
             digitalWrite(LED_A_PIN, HIGH);  
             digitalWrite(LED_B_PIN, LOW);  
             digitalWrite(LED_C_PIN, LOW);              
+            displayHandler(DISPLAY_ON ,dist_min);           
             // digitalWrite(yellowLed, HIGH);   // turn the LED on (HIGH is the voltage level)
             //   delay(100);
         }
         else
         {
-            
             beep(BEEP_MODE_DISABLED, 0);            
             digitalWrite(LED_A_PIN, LOW);  
             digitalWrite(LED_B_PIN, LOW);  
             digitalWrite(LED_C_PIN, LOW);               
+            displayHandler(DISPLAY_OFF , 0);
         }
     }
     
