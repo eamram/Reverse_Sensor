@@ -25,7 +25,7 @@
 #define DISTANCE_LEVEL_C        15  // [cm]
 #define DISPLAY_DIST_GAP         5  // [cm]
 #define SERIAL_COM_RATE     115200
-#define SONAR_SAMPLE_TIME      150 // [mSec]
+#define SONAR_SAMPLE_TIME       50 // [mSec]
 #define SONAR_NOF_SAMPLES        3
 #define BEEP_MODE_DISABLED       0
 #define BEEP_MODE_EN_FREQ        1
