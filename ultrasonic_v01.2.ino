@@ -20,8 +20,8 @@
 #define LED_B_PIN               12
 #define LED_C_PIN               13
 #define MAX_DISTANCE           400  // [cm]
-#define DISTANCE_LEVEL_A        40  // [cm]
-#define DISTANCE_LEVEL_B        20  // [cm]
+#define DISTANCE_LEVEL_A        50  // [cm]
+#define DISTANCE_LEVEL_B        30  // [cm]
 #define DISTANCE_LEVEL_C        15  // [cm]
 #define DISPLAY_DIST_GAP         5  // [cm]
 #define SERIAL_COM_RATE     115200
@@ -32,6 +32,11 @@
 #define BEEP_MODE_EN_CONST       2
 #define DISPLAY_OFF              0
 #define DISPLAY_ON               1
+#define MODE_LEVEL_DEF           3  
+#define MODE_LEVEL_A             2
+#define MODE_LEVEL_B             1
+#define MODE_LEVEL_C             0         
+
 
 
 ///////////////////////////////////////////////////////
@@ -51,6 +56,10 @@ int dist_c[SONAR_NOF_SAMPLES];
 int dist_c_avg;
 int dist_min;
 int display_number;
+int remainder;
+int upper_display_number;
+int lower_display_number;
+int mode_level;
 char display_data[] = {0x0, 0x0, 0x0, 0x0};
 
 
@@ -87,28 +96,13 @@ void beep(int mode, int duration)
 ///////////////////////////////////////////////////////
 void displayHandler(int mode, int number)
 {
-    int remainder,
-        upper_display_number,
-        lower_display_number;
-        
-    
+
     if ( mode == DISPLAY_OFF )
     {
         display.setSegments(display_data);    
     }
     else
     {
-        remainder = number % DISPLAY_DIST_GAP;
-        lower_display_number = number - remainder;
-        upper_display_number = lower_display_number + DISPLAY_DIST_GAP;
-        if (remainder <= (DISPLAY_DIST_GAP / 2 ) )
-        {
-            display_number = lower_display_number;
-        }
-        else
-        {
-            display_number = upper_display_number;
-        }
         display.showNumberDec(display_number);      
     }
 }
@@ -159,45 +153,70 @@ void loop() {
         Serial.print(dist_min);
         Serial.println(" cm min");
         Serial.println("----------");
-      
-        if (dist_min < DISTANCE_LEVEL_C)
+        
+        // Calculate display number
+        remainder = dist_min % DISPLAY_DIST_GAP;
+        lower_display_number = dist_min - remainder;
+        upper_display_number = lower_display_number + DISPLAY_DIST_GAP;
+        if (remainder <= (DISPLAY_DIST_GAP / 2 ) )
         {
-            beep(BEEP_MODE_EN_CONST, 0);
-            digitalWrite(LED_A_PIN, HIGH);  
-            digitalWrite(LED_B_PIN, HIGH);  
-            digitalWrite(LED_C_PIN, HIGH);
-            displayHandler(DISPLAY_ON ,dist_min);
-            //beep(50);
-            // digitalWrite(redLed, HIGH);   // turn the LED on (HIGH is the voltage level)
-            //  digitalWrite(greenLed, HIGH);   // turn the LED on (HIGH is the voltage level)
-        }
-        else if (dist_min < DISTANCE_LEVEL_B)
-        {
-            beep(BEEP_MODE_EN_FREQ, 50);
-            digitalWrite(LED_A_PIN, HIGH);  
-            digitalWrite(LED_B_PIN, HIGH);  
-            digitalWrite(LED_C_PIN, LOW);             
-            displayHandler(DISPLAY_ON ,dist_min);       
-            //beep(100);
-            // digitalWrite(greenLed, HIGH);   // turn the LED on (HIGH is the voltage level)
-        }
-        else if (dist_min < DISTANCE_LEVEL_A)
-        {
-            beep(BEEP_MODE_DISABLED, 0);    
-            digitalWrite(LED_A_PIN, HIGH);  
-            digitalWrite(LED_B_PIN, LOW);  
-            digitalWrite(LED_C_PIN, LOW);              
-            displayHandler(DISPLAY_ON ,dist_min);           
-            // digitalWrite(yellowLed, HIGH);   // turn the LED on (HIGH is the voltage level)
-            //   delay(100);
+            display_number = lower_display_number;
         }
         else
         {
-            beep(BEEP_MODE_DISABLED, 0);            
-            digitalWrite(LED_A_PIN, LOW);  
-            digitalWrite(LED_B_PIN, LOW);  
-            digitalWrite(LED_C_PIN, LOW);               
-            displayHandler(DISPLAY_OFF , 0);
+            display_number = upper_display_number;
+        }
+        
+        // Set level mode
+        mode_level = MODE_LEVEL_DEF;
+        if ( display_number < DISTANCE_LEVEL_C )
+        {
+            mode_level = MODE_LEVEL_C;
+        }
+        else if ( display_number < DISTANCE_LEVEL_B )
+        {
+            mode_level = MODE_LEVEL_B;            
+        }
+        else if ( display_number < DISTANCE_LEVEL_A )
+        {
+            mode_level = MODE_LEVEL_A;            
+        }        
+      
+                 
+        // Set dispay, buzzer and LED behavior according to mode level   
+        switch (mode_level)
+        {
+            case MODE_LEVEL_A:
+                beep(BEEP_MODE_DISABLED, 0);    
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, LOW);  
+                digitalWrite(LED_C_PIN, LOW);              
+                displayHandler(DISPLAY_ON ,dist_min);                  
+                break;
+                
+            case MODE_LEVEL_B:
+                beep(BEEP_MODE_EN_FREQ, 50);
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, LOW);             
+                displayHandler(DISPLAY_ON ,dist_min);                       
+                break;
+                
+            case MODE_LEVEL_C:
+                beep(BEEP_MODE_EN_CONST, 0);
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, HIGH);
+                displayHandler(DISPLAY_ON ,dist_min);                
+                break;
+                
+            default:
+                beep(BEEP_MODE_DISABLED, 0);            
+                digitalWrite(LED_A_PIN, LOW);  
+                digitalWrite(LED_B_PIN, LOW);  
+                digitalWrite(LED_C_PIN, LOW);               
+                displayHandler(DISPLAY_OFF , 0);                
+                break;
         }
     }
     
