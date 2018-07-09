@@ -93,6 +93,7 @@ void loop() {
         dist_a_avg = (dist_a[0]+dist_a[1]+dist_a[2])/3;
         dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;
         dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
+        dist_d_avg =  (dist_d[0]+dist_d[1]+dist_d[2])/3;        
         dist_min = min(dist_a_avg, dist_b_avg);
         dist_min = min(dist_min, dist_c_avg);
         dist_min = min(dist_min, dist_d_avg);    
