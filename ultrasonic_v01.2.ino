@@ -2,27 +2,33 @@
 //                 HEADER FILES                      //
 ///////////////////////////////////////////////////////
 #include <NewPing.h> //Load UltraSonic Library
-#include <TM1637Display.h>
+#include <Wire.h>
+#include <L3G.h>
 
 ///////////////////////////////////////////////////////
 //                 DEFINITIONS                       //
 ///////////////////////////////////////////////////////
+// I/O Pins
 #define TRIGGER_PIN_A            2
 #define ECHO_PIN_A               3
 #define TRIGGER_PIN_B            4
 #define ECHO_PIN_B               5
 #define TRIGGER_PIN_C            6
 #define ECHO_PIN_C               7
-#define DISPLAY_CLK_PIN          8
-#define DISPLAY_DIO_PIN          9
-#define BUZZ_PIN                10
-#define LED_A_PIN               11
-#define LED_B_PIN               12
-#define LED_C_PIN               13
+#define TRIGGER_PIN_D            8
+#define ECHO_PIN_D               9
+#define LED_A_PIN               10
+#define LED_B_PIN               11
+#define LED_C_PIN               12
+#define LED_D_PIN               13
+
+// General
 #define MAX_DISTANCE           400  // [cm]
 #define DISTANCE_LEVEL_A        50  // [cm]
-#define DISTANCE_LEVEL_B        30  // [cm]
-#define DISTANCE_LEVEL_C        15  // [cm]
+#define DISTANCE_LEVEL_B        40  // [cm]
+#define DISTANCE_LEVEL_C        30  // [cm]
+#define DISTANCE_LEVEL_D        20  // [cm]
+#define DISTANCE_LEVEL_E        10  // [cm]
 #define DISPLAY_DIST_GAP         5  // [cm]
 #define SERIAL_COM_RATE     115200
 #define SONAR_SAMPLE_TIME       50 // [mSec]
@@ -32,11 +38,12 @@
 #define BEEP_MODE_EN_CONST       2
 #define DISPLAY_OFF              0
 #define DISPLAY_ON               1
-#define MODE_LEVEL_DEF           3  
-#define MODE_LEVEL_A             2
-#define MODE_LEVEL_B             1
-#define MODE_LEVEL_C             0         
-
+#define MODE_LEVEL_DEF           5 
+#define MODE_LEVEL_A             4
+#define MODE_LEVEL_B             3    
+#define MODE_LEVEL_C             2
+#define MODE_LEVEL_D             1
+#define MODE_LEVEL_E             0         
 
 
 ///////////////////////////////////////////////////////
@@ -45,7 +52,9 @@
 NewPing sonar_a(TRIGGER_PIN_A, ECHO_PIN_A, MAX_DISTANCE);
 NewPing sonar_b(TRIGGER_PIN_B, ECHO_PIN_B, MAX_DISTANCE);
 NewPing sonar_c(TRIGGER_PIN_C, ECHO_PIN_C, MAX_DISTANCE);
-TM1637Display display(DISPLAY_CLK_PIN, DISPLAY_DIO_PIN);
+NewPing sonar_d(TRIGGER_PIN_D, ECHO_PIN_D, MAX_DISTANCE);
+
+L3G gyro;
 int cycle_cnt;
 int sample_id;
 int dist_a[SONAR_NOF_SAMPLES];
@@ -54,59 +63,17 @@ int dist_b[SONAR_NOF_SAMPLES];
 int dist_b_avg;
 int dist_c[SONAR_NOF_SAMPLES];
 int dist_c_avg;
+int dist_d[SONAR_NOF_SAMPLES];
+int dist_d_avg;
 int dist_min;
 int display_number;
 int remainder;
 int upper_display_number;
 int lower_display_number;
 int mode_level;
+unsigned long StartTime;
+unsigned long CurTime;
 char display_data[] = {0x0, 0x0, 0x0, 0x0};
-
-
-///////////////////////////////////////////////////////
-//                       BEEP()                      //
-///////////////////////////////////////////////////////
-void beep(int mode, int duration)
-{
-    int t = 0;
-    
-    if ( mode == BEEP_MODE_DISABLED )
-    {
-        digitalWrite(BUZZ_PIN, LOW);   // turn the BUZZ off (LOW is the voltage level)
-    }
-    
-    if ( mode == BEEP_MODE_EN_FREQ )
-    {
-        for (t = 0; t < (duration/10); t++)
-        {
-            digitalWrite(BUZZ_PIN, HIGH);   // turn the BUZZ on (LOW is the voltage level)
-            delay(10);
-            digitalWrite(BUZZ_PIN, LOW);   // turn the BUZZ off (LOW is the voltage level)
-        }        
-    }
-    
-    if ( mode == BEEP_MODE_EN_CONST )
-    {
-        digitalWrite(BUZZ_PIN, HIGH);   // turn the BUZZ on (LOW is the voltage level)
-    }    
-}
-
-///////////////////////////////////////////////////////
-//                   displayHandler()                //
-///////////////////////////////////////////////////////
-void displayHandler(int mode, int number)
-{
-
-    if ( mode == DISPLAY_OFF )
-    {
-        display.setSegments(display_data);    
-    }
-    else
-    {
-        display.showNumberDec(display_number);      
-    }
-}
-
 
 ///////////////////////////////////////////////////////
 //                SETUP()                            //
@@ -114,11 +81,17 @@ void displayHandler(int mode, int number)
 void setup() 
 {
     Serial.begin(SERIAL_COM_RATE);
-    pinMode(BUZZ_PIN, OUTPUT);
+    Wire.begin();
+    if (!gyro.init())
+    {
+        Serial.println("Failed to autodetect gyro type!");
+    }
+    gyro.enableDefault();    
     pinMode(LED_A_PIN, OUTPUT);
     pinMode(LED_B_PIN, OUTPUT);
-    pinMode(LED_C_PIN, OUTPUT);    
-    display.setBrightness(0x7);  //set the diplay to maximum brightness 
+    pinMode(LED_C_PIN, OUTPUT);
+    pinMode(LED_D_PIN, OUTPUT);
+//    pinMode(LED_E_PIN, OUTPUT);    
     cycle_cnt = 0;
 }
 
@@ -131,7 +104,8 @@ void loop() {
     sample_id = (cycle_cnt % SONAR_NOF_SAMPLES);
     dist_a[sample_id] = sonar_a.ping_cm();
     dist_b[sample_id]= sonar_b.ping_cm();
-//    dist_c[sample_id]= sonar_c.ping_cm();
+    dist_c[sample_id]= sonar_c.ping_cm();
+    dist_d[sample_id]= sonar_d.ping_cm();    
     
     // Calculate average distance samples and call dispaly and beep functions
     if (sample_id == 0 )
@@ -140,7 +114,8 @@ void loop() {
         dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;
         dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
         dist_min = min(dist_a_avg, dist_b_avg);
-   //     dist_min = min(dist_min, dist_c_avg);
+        dist_min = min(dist_min, dist_c_avg);
+        dist_min = min(dist_min, dist_d_avg);        
 
         // Print to serial port
         Serial.print(dist_a_avg);
@@ -149,11 +124,23 @@ void loop() {
         Serial.println(" b cm");
         Serial.print(dist_c_avg);
         Serial.println(" c cm");
+        Serial.print(dist_d_avg);
+        Serial.println(" d cm");        
         Serial.println("----------");
         Serial.print(dist_min);
         Serial.println(" cm min");
         Serial.println("----------");
         
+        gyro.read();
+
+        Serial.print("G ");
+        Serial.print("X: ");
+        Serial.print((int)gyro.g.x);
+        Serial.print(" Y: ");
+        Serial.print((int)gyro.g.y);
+        Serial.print(" Z: ");
+        Serial.println((int)gyro.g.z);
+           
         // Calculate display number
         remainder = dist_min % DISPLAY_DIST_GAP;
         lower_display_number = dist_min - remainder;
@@ -182,40 +169,67 @@ void loop() {
             mode_level = MODE_LEVEL_A;            
         }        
       
-                 
+        if ( gyro.g.x > 1000 ||  gyro.g.x < -1000 ||
+             gyro.g.y > 1000 ||  gyro.g.y < -1000 ||
+             gyro.g.z > 1000 ||  gyro.g.z < -1000 )
+        {
+            StartTime = millis();
+        }         
+        CurTime = millis();
+        if ((CurTime - StartTime) > 5000 )
+        {
+          mode_level = MODE_LEVEL_DEF;  
+        }
+        
         // Set dispay, buzzer and LED behavior according to mode level   
         switch (mode_level)
         {
-            case MODE_LEVEL_A:
-                beep(BEEP_MODE_DISABLED, 0);    
+            case MODE_LEVEL_A:   
                 digitalWrite(LED_A_PIN, HIGH);  
                 digitalWrite(LED_B_PIN, LOW);  
                 digitalWrite(LED_C_PIN, LOW);              
-                displayHandler(DISPLAY_ON ,dist_min);                  
+                digitalWrite(LED_D_PIN, LOW);   
+   //             digitalWrite(LED_E_PIN, LOW);                   
                 break;
                 
             case MODE_LEVEL_B:
-                beep(BEEP_MODE_EN_FREQ, 50);
                 digitalWrite(LED_A_PIN, HIGH);  
                 digitalWrite(LED_B_PIN, HIGH);  
-                digitalWrite(LED_C_PIN, LOW);             
-                displayHandler(DISPLAY_ON ,dist_min);                       
+                digitalWrite(LED_C_PIN, LOW);
+                digitalWrite(LED_D_PIN, LOW);   
+ //               digitalWrite(LED_E_PIN, LOW);                   
                 break;
                 
             case MODE_LEVEL_C:
-                beep(BEEP_MODE_EN_CONST, 0);
                 digitalWrite(LED_A_PIN, HIGH);  
                 digitalWrite(LED_B_PIN, HIGH);  
                 digitalWrite(LED_C_PIN, HIGH);
-                displayHandler(DISPLAY_ON ,dist_min);                
+                digitalWrite(LED_D_PIN, LOW);   
+//                digitalWrite(LED_E_PIN, LOW);                   
                 break;
                 
-            default:
-                beep(BEEP_MODE_DISABLED, 0);            
+            case MODE_LEVEL_D:
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, HIGH);
+                digitalWrite(LED_D_PIN, HIGH);   
+//                digitalWrite(LED_E_PIN, LOW);                   
+                break;                
+                
+            case MODE_LEVEL_E:
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, HIGH);
+                digitalWrite(LED_D_PIN, HIGH);   
+//                digitalWrite(LED_E_PIN, HIGH);                   
+                break;                
+                
+            default:        
                 digitalWrite(LED_A_PIN, LOW);  
                 digitalWrite(LED_B_PIN, LOW);  
-                digitalWrite(LED_C_PIN, LOW);               
-                displayHandler(DISPLAY_OFF , 0);                
+                digitalWrite(LED_C_PIN, LOW);
+                digitalWrite(LED_D_PIN, LOW);   
+//                digitalWrite(LED_E_PIN, LOW);                   
                 break;
         }
     }
