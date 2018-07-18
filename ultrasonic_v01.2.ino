@@ -16,6 +16,12 @@
 #define LED_B_PIN               11
 #define LED_C_PIN               12
 #define LED_D_PIN               13
+#define LED_E_PIN               A5
+#define LED_F_PIN               A0
+#define LED_G_PIN               A1
+#define LED_H_PIN               A2
+#define LED_I_PIN               A3
+#define LED_J_PIN               A4
 
 // General
 #define MAX_DISTANCE           400  // [cm]
@@ -71,7 +77,14 @@ void setup()
     pinMode(LED_A_PIN, OUTPUT);
     pinMode(LED_B_PIN, OUTPUT);
     pinMode(LED_C_PIN, OUTPUT);
-    pinMode(LED_D_PIN, OUTPUT);   
+    pinMode(LED_D_PIN, OUTPUT); 
+    pinMode(LED_E_PIN, OUTPUT);
+    pinMode(LED_F_PIN, OUTPUT);
+    pinMode(LED_G_PIN, OUTPUT);
+    pinMode(LED_H_PIN, OUTPUT);   
+    pinMode(LED_I_PIN, OUTPUT);
+    pinMode(LED_J_PIN, OUTPUT);
+       
     cycle_cnt = 0;
 }
 
@@ -79,7 +92,8 @@ void setup()
 ///////////////////////////////////////////////////////
 //                 LOOP()                            //
 ///////////////////////////////////////////////////////
-void loop() {
+void loop() 
+{
     // Variable Initialization
     sample_id = (cycle_cnt % SONAR_NOF_SAMPLES);
     dist_a[sample_id] = sonar_a.ping_cm();
@@ -90,14 +104,13 @@ void loop() {
     // Calculate average distance samples and call dispaly and beep functions
     if (sample_id == 0 )
     {
+        // ------------------------------------
+        // Right Sensor Data & Display handler
+        // ------------------------------------
         dist_a_avg = (dist_a[0]+dist_a[1]+dist_a[2])/3;
-        dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;
-        dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
-        dist_d_avg =  (dist_d[0]+dist_d[1]+dist_d[2])/3;        
+        dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;   
         dist_min = min(dist_a_avg, dist_b_avg);
-        dist_min = min(dist_min, dist_c_avg);
-        dist_min = min(dist_min, dist_d_avg);    
-        
+ 
         // Calculate display number
         remainder = dist_min % DISPLAY_DIST_GAP;
         lower_display_number = dist_min - remainder;
@@ -138,7 +151,114 @@ void loop() {
         Serial.print(dist_a_avg);
         Serial.println(" a cm");
         Serial.print(dist_b_avg);
-        Serial.println(" b cm");
+        Serial.println(" b cm");  
+        Serial.println("----------");
+        Serial.print(dist_min);
+        Serial.println(" cm min");
+        Serial.println("----------");
+        Serial.print("Display Number: ");
+        Serial.println(display_number);
+        Serial.println("----------"); 
+        Serial.print("Mode: ");
+        Serial.println(mode_level);
+        Serial.println("----------");        
+        
+        // Set Display LED behavior according to mode level   
+        switch (mode_level)
+        {
+            case MODE_LEVEL_A:   
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, LOW);  
+                digitalWrite(LED_C_PIN, LOW);              
+                digitalWrite(LED_D_PIN, LOW);                   
+                digitalWrite(LED_E_PIN, LOW);                
+                break;
+                
+            case MODE_LEVEL_B:
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, LOW);
+                digitalWrite(LED_D_PIN, LOW);
+                digitalWrite(LED_E_PIN, LOW);                  
+                break;
+                
+            case MODE_LEVEL_C:
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, HIGH);
+                digitalWrite(LED_D_PIN, LOW);
+                digitalWrite(LED_E_PIN, LOW);                  
+                break;
+                
+            case MODE_LEVEL_D:
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, HIGH);
+                digitalWrite(LED_D_PIN, HIGH); 
+                digitalWrite(LED_E_PIN, LOW);                  
+                break;                
+                
+            case MODE_LEVEL_E:
+                digitalWrite(LED_A_PIN, HIGH);  
+                digitalWrite(LED_B_PIN, HIGH);  
+                digitalWrite(LED_C_PIN, HIGH);
+                digitalWrite(LED_D_PIN, HIGH); 
+                digitalWrite(LED_E_PIN, HIGH);  
+                break;                
+                
+            default:        
+                digitalWrite(LED_A_PIN, LOW);  
+                digitalWrite(LED_B_PIN, LOW);  
+                digitalWrite(LED_C_PIN, LOW);
+                digitalWrite(LED_D_PIN, LOW);  
+                digitalWrite(LED_E_PIN, LOW);                  
+                break;
+        } // switch (mode_level)
+    
+        // ------------------------------------
+        // Left Sensor Data & Display handler
+        // ------------------------------------
+        dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
+        dist_d_avg =  (dist_d[0]+dist_d[1]+dist_d[2])/3;        
+        dist_min = min(dist_c_avg, dist_d_avg);
+        
+        // Calculate display number
+        remainder = dist_min % DISPLAY_DIST_GAP;
+        lower_display_number = dist_min - remainder;
+        upper_display_number = lower_display_number + DISPLAY_DIST_GAP;
+        if (remainder <= (DISPLAY_DIST_GAP / 2 ) )
+        {
+            display_number = lower_display_number;
+        }
+        else
+        {
+            display_number = upper_display_number;
+        }
+        
+        // Set level mode
+        mode_level = MODE_LEVEL_DEF;
+        if ( display_number < DISTANCE_LEVEL_E )
+        {
+            mode_level = MODE_LEVEL_E;
+        }        
+        else if ( display_number < DISTANCE_LEVEL_D )
+        {
+            mode_level = MODE_LEVEL_D;
+        }
+        else if ( display_number < DISTANCE_LEVEL_C )
+        {
+            mode_level = MODE_LEVEL_C;
+        }
+        else if ( display_number < DISTANCE_LEVEL_B )
+        {
+            mode_level = MODE_LEVEL_B;            
+        }
+        else if ( display_number < DISTANCE_LEVEL_A )
+        {
+            mode_level = MODE_LEVEL_A;            
+        }        
+
+        // Print to serial port
         Serial.print(dist_c_avg);
         Serial.println(" c cm");
         Serial.print(dist_d_avg);
@@ -154,53 +274,59 @@ void loop() {
         Serial.println(mode_level);
         Serial.println("----------");        
         
-        // Set dispay, buzzer and LED behavior according to mode level   
+        // Set Display LED behavior according to mode level   
         switch (mode_level)
         {
             case MODE_LEVEL_A:   
-                digitalWrite(LED_A_PIN, HIGH);  
-                digitalWrite(LED_B_PIN, LOW);  
-                digitalWrite(LED_C_PIN, LOW);              
-                digitalWrite(LED_D_PIN, LOW);                   
+                digitalWrite(LED_F_PIN, HIGH);  
+                digitalWrite(LED_G_PIN, LOW);  
+                digitalWrite(LED_H_PIN, LOW);              
+                digitalWrite(LED_I_PIN, LOW);                   
+                digitalWrite(LED_J_PIN, LOW);                
                 break;
                 
             case MODE_LEVEL_B:
-                digitalWrite(LED_A_PIN, HIGH);  
-                digitalWrite(LED_B_PIN, HIGH);  
-                digitalWrite(LED_C_PIN, LOW);
-                digitalWrite(LED_D_PIN, LOW);                    
+                digitalWrite(LED_F_PIN, HIGH);  
+                digitalWrite(LED_G_PIN, HIGH);  
+                digitalWrite(LED_H_PIN, LOW);
+                digitalWrite(LED_I_PIN, LOW);
+                digitalWrite(LED_J_PIN, LOW);                  
                 break;
                 
             case MODE_LEVEL_C:
-                digitalWrite(LED_A_PIN, HIGH);  
-                digitalWrite(LED_B_PIN, HIGH);  
-                digitalWrite(LED_C_PIN, HIGH);
-                digitalWrite(LED_D_PIN, LOW);                     
+                digitalWrite(LED_F_PIN, HIGH);  
+                digitalWrite(LED_G_PIN, HIGH);  
+                digitalWrite(LED_H_PIN, HIGH);
+                digitalWrite(LED_I_PIN, LOW);
+                digitalWrite(LED_J_PIN, LOW);                  
                 break;
                 
             case MODE_LEVEL_D:
-                digitalWrite(LED_A_PIN, HIGH);  
-                digitalWrite(LED_B_PIN, HIGH);  
-                digitalWrite(LED_C_PIN, HIGH);
-                digitalWrite(LED_D_PIN, HIGH);                    
+                digitalWrite(LED_F_PIN, HIGH);  
+                digitalWrite(LED_G_PIN, HIGH);  
+                digitalWrite(LED_H_PIN, HIGH);
+                digitalWrite(LED_I_PIN, HIGH); 
+                digitalWrite(LED_J_PIN, LOW);                  
                 break;                
                 
             case MODE_LEVEL_E:
-                digitalWrite(LED_A_PIN, HIGH);  
-                digitalWrite(LED_B_PIN, HIGH);  
-                digitalWrite(LED_C_PIN, HIGH);
-                digitalWrite(LED_D_PIN, HIGH);                     
+                digitalWrite(LED_F_PIN, HIGH);  
+                digitalWrite(LED_G_PIN, HIGH);  
+                digitalWrite(LED_H_PIN, HIGH);
+                digitalWrite(LED_I_PIN, HIGH); 
+                digitalWrite(LED_J_PIN, HIGH);  
                 break;                
                 
             default:        
-                digitalWrite(LED_A_PIN, LOW);  
-                digitalWrite(LED_B_PIN, LOW);  
-                digitalWrite(LED_C_PIN, LOW);
-                digitalWrite(LED_D_PIN, LOW);                      
+                digitalWrite(LED_F_PIN, LOW);  
+                digitalWrite(LED_G_PIN, LOW);  
+                digitalWrite(LED_H_PIN, LOW);
+                digitalWrite(LED_I_PIN, LOW);  
+                digitalWrite(LED_J_PIN, LOW);                  
                 break;
-        }
-    }
+        } // switch (mode_level)
+    } // if (sample_id == 0 )    
     
     delay(SONAR_SAMPLE_TIME);
     cycle_cnt++;
-}
+} // void loop()
