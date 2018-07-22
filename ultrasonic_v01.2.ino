@@ -72,6 +72,7 @@ int lower_display_number;
 int mode_level;
 unsigned long AccelReadTime,
               LastMoveTime,
+              AccelLastInitTime,
               CurTime;
 int DispalyEnableFlag;
 int IgnoreAccelFlag;
@@ -93,6 +94,7 @@ void setup()
     pinMode(LED_I_PIN, OUTPUT);
 //  pinMode(LED_J_PIN, OUTPUT);
     accel.init();
+    AccelLastInitTime  = millis();
        
     cycle_cnt = 0;
     DispalyEnableFlag = 1;
@@ -139,6 +141,11 @@ void loop()
             DispalyEnableFlag = 1;
             IgnoreAccelFlag = 1;
         }
+       if ( ( CurTime - AccelLastInitTime ) > 1000  && IgnoreAccelFlag == 1 )
+       {
+          accel.init();         
+          AccelLastInitTime = CurTime;         
+       }
     } 
     
     CurTime = millis();
