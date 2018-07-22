@@ -74,6 +74,7 @@ unsigned long AccelReadTime,
               LastMoveTime,
               CurTime;
 int DispalyEnableFlag;
+int IgnoreAccelFlag;
 
 ///////////////////////////////////////////////////////
 //                SETUP()                            //
@@ -81,7 +82,7 @@ int DispalyEnableFlag;
 void setup() 
 {
     Serial.begin(SERIAL_COM_RATE); 
-    pinMode(LED_A_PIN, OUTPUT);
+    pinMode(LED_A_PIN , OUTPUT);
     pinMode(LED_B_PIN, OUTPUT);
     pinMode(LED_C_PIN, OUTPUT);
     pinMode(LED_D_PIN, OUTPUT); 
@@ -95,6 +96,7 @@ void setup()
        
     cycle_cnt = 0;
     DispalyEnableFlag = 1;
+    IgnoreAccelFlag = 0;
 }
 
 
@@ -114,6 +116,7 @@ void loop()
     {
         // First, use accel.read() to read the new variables:
         accel.read();
+        IgnoreAccelFlag = 0;
         AccelReadTime = millis();
         Serial.print(accel.cx, 3);
         Serial.print("\t");
@@ -130,15 +133,16 @@ void loop()
     else
     {
         CurTime = millis();
-        if ( (CurTime - AccelReadTime) > 1000 && DispalyEnableFlag == 1 )
+        if ( (CurTime - AccelReadTime) > 1000 && IgnoreAccelFlag == 0 )
         {
             Serial.println("No Signal from Accel Sensor for more than 1 Sec");
-            DispalyEnableFlag = 0;
+            DispalyEnableFlag = 1;
+            IgnoreAccelFlag = 1;
         }
     } 
     
     CurTime = millis();
-    if ( (CurTime - LastMoveTime) > 5000 && DispalyEnableFlag == 1 )    
+    if ( IgnoreAccelFlag == 0 && (CurTime - LastMoveTime) > 5000 && DispalyEnableFlag == 1 )    
     {
             Serial.println("No movement for more than 5 Sec");
             DispalyEnableFlag = 0;
