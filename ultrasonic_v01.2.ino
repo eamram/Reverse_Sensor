@@ -1,4 +1,6 @@
-#include <NewPing.h>
+#include <NewPing.h> // For Ultrasonic library
+#include <Wire.h> // Must include Wire library for I2C
+#include <SparkFun_MMA8452Q.h> // Includes the SFE_MMA8452Q library
 
 ///////////////////////////////////////////////////////
 //                 DEFINITIONS                       //
@@ -16,16 +18,16 @@
 #define LED_B_PIN               11
 #define LED_C_PIN               12
 #define LED_D_PIN               13
-#define LED_E_PIN               A5
+//#define LED_E_PIN               A5
 #define LED_F_PIN               A0
 #define LED_G_PIN               A1
 #define LED_H_PIN               A2
 #define LED_I_PIN               A3
-#define LED_J_PIN               A4
+//#define LED_J_PIN               A4
 
 // General
 #define MAX_DISTANCE           400  // [cm]
-#define DISTANCE_LEVEL_A        50  // [cm]
+#define DISTANCE_LEVEL_A        40//50  // [cm]
 #define DISTANCE_LEVEL_B        40  // [cm]
 #define DISTANCE_LEVEL_C        30  // [cm]
 #define DISTANCE_LEVEL_D        20  // [cm]
@@ -50,7 +52,8 @@ NewPing sonar_b(TRIGGER_PIN_B, ECHO_PIN_B, MAX_DISTANCE);
 NewPing sonar_c(TRIGGER_PIN_C, ECHO_PIN_C, MAX_DISTANCE);
 NewPing sonar_d(TRIGGER_PIN_D, ECHO_PIN_D, MAX_DISTANCE);
 
-//L3G gyro;
+MMA8452Q accel;
+
 int cycle_cnt;
 int sample_id;
 int dist_a[SONAR_NOF_SAMPLES];
@@ -67,6 +70,10 @@ int remainder;
 int upper_display_number;
 int lower_display_number;
 int mode_level;
+unsigned long AccelReadTime,
+              LastMoveTime,
+              CurTime;
+int DispalyEnableFlag;
 
 ///////////////////////////////////////////////////////
 //                SETUP()                            //
@@ -78,14 +85,16 @@ void setup()
     pinMode(LED_B_PIN, OUTPUT);
     pinMode(LED_C_PIN, OUTPUT);
     pinMode(LED_D_PIN, OUTPUT); 
-    pinMode(LED_E_PIN, OUTPUT);
+//  pinMode(LED_E_PIN, OUTPUT);
     pinMode(LED_F_PIN, OUTPUT);
     pinMode(LED_G_PIN, OUTPUT);
     pinMode(LED_H_PIN, OUTPUT);   
     pinMode(LED_I_PIN, OUTPUT);
-    pinMode(LED_J_PIN, OUTPUT);
+//  pinMode(LED_J_PIN, OUTPUT);
+    accel.init();
        
     cycle_cnt = 0;
+    DispalyEnableFlag = 1;
 }
 
 
@@ -99,7 +108,41 @@ void loop()
     dist_a[sample_id] = sonar_a.ping_cm();
     dist_b[sample_id]= sonar_b.ping_cm();
     dist_c[sample_id]= sonar_c.ping_cm();
-    dist_d[sample_id]= sonar_d.ping_cm();    
+    dist_d[sample_id]= sonar_d.ping_cm();  
+    
+    if (accel.available())
+    {
+        // First, use accel.read() to read the new variables:
+        accel.read();
+        AccelReadTime = millis();
+        Serial.print(accel.cx, 3);
+        Serial.print("\t");
+        Serial.print(accel.cy, 3);       
+        Serial.println();
+        
+        // Check for movement
+        if ( accel.cx > 0.1 ||  accel.cy > 0.1 )
+        {
+           LastMoveTime = millis();
+            DispalyEnableFlag = 1;
+        }
+    }
+    else
+    {
+        CurTime = millis();
+        if ( (CurTime - AccelReadTime) > 1000 && DispalyEnableFlag == 1 )
+        {
+            Serial.println("No Signal from Accel Sensor for more than 1 Sec");
+            DispalyEnableFlag = 0;
+        }
+    } 
+    
+    CurTime = millis();
+    if ( (CurTime - LastMoveTime) > 5000 && DispalyEnableFlag == 1 )    
+    {
+            Serial.println("No movement for more than 5 Sec");
+            DispalyEnableFlag = 0;
+    }
     
     // Calculate average distance samples and call dispaly and beep functions
     if (sample_id == 0 )
@@ -145,7 +188,12 @@ void loop()
         else if ( display_number < DISTANCE_LEVEL_A )
         {
             mode_level = MODE_LEVEL_A;            
-        }        
+        }  
+        
+        if ( DispalyEnableFlag == 0 )
+        {
+            mode_level = MODE_LEVEL_DEF;            
+        }
 
         // Print to serial port
         Serial.print(dist_a_avg);
@@ -171,7 +219,7 @@ void loop()
                 digitalWrite(LED_B_PIN, LOW);  
                 digitalWrite(LED_C_PIN, LOW);              
                 digitalWrite(LED_D_PIN, LOW);                   
-                digitalWrite(LED_E_PIN, LOW);                
+                //digitalWrite(LED_E_PIN, LOW);                
                 break;
                 
             case MODE_LEVEL_B:
@@ -179,7 +227,7 @@ void loop()
                 digitalWrite(LED_B_PIN, HIGH);  
                 digitalWrite(LED_C_PIN, LOW);
                 digitalWrite(LED_D_PIN, LOW);
-                digitalWrite(LED_E_PIN, LOW);                  
+                //digitalWrite(LED_E_PIN, LOW);                  
                 break;
                 
             case MODE_LEVEL_C:
@@ -187,7 +235,7 @@ void loop()
                 digitalWrite(LED_B_PIN, HIGH);  
                 digitalWrite(LED_C_PIN, HIGH);
                 digitalWrite(LED_D_PIN, LOW);
-                digitalWrite(LED_E_PIN, LOW);                  
+                //digitalWrite(LED_E_PIN, LOW);                  
                 break;
                 
             case MODE_LEVEL_D:
@@ -195,7 +243,7 @@ void loop()
                 digitalWrite(LED_B_PIN, HIGH);  
                 digitalWrite(LED_C_PIN, HIGH);
                 digitalWrite(LED_D_PIN, HIGH); 
-                digitalWrite(LED_E_PIN, LOW);                  
+                //digitalWrite(LED_E_PIN, LOW);                  
                 break;                
                 
             case MODE_LEVEL_E:
@@ -203,7 +251,7 @@ void loop()
                 digitalWrite(LED_B_PIN, HIGH);  
                 digitalWrite(LED_C_PIN, HIGH);
                 digitalWrite(LED_D_PIN, HIGH); 
-                digitalWrite(LED_E_PIN, HIGH);  
+                //digitalWrite(LED_E_PIN, HIGH);  
                 break;                
                 
             default:        
@@ -211,7 +259,7 @@ void loop()
                 digitalWrite(LED_B_PIN, LOW);  
                 digitalWrite(LED_C_PIN, LOW);
                 digitalWrite(LED_D_PIN, LOW);  
-                digitalWrite(LED_E_PIN, LOW);                  
+                //digitalWrite(LED_E_PIN, LOW);                  
                 break;
         } // switch (mode_level)
     
@@ -256,7 +304,12 @@ void loop()
         else if ( display_number < DISTANCE_LEVEL_A )
         {
             mode_level = MODE_LEVEL_A;            
-        }        
+        }
+        
+        if ( DispalyEnableFlag == 0 )
+        {
+            mode_level = MODE_LEVEL_DEF;            
+        }
 
         // Print to serial port
         Serial.print(dist_c_avg);
@@ -282,7 +335,7 @@ void loop()
                 digitalWrite(LED_G_PIN, LOW);  
                 digitalWrite(LED_H_PIN, LOW);              
                 digitalWrite(LED_I_PIN, LOW);                   
-                digitalWrite(LED_J_PIN, LOW);                
+                //digitalWrite(LED_J_PIN, LOW);                
                 break;
                 
             case MODE_LEVEL_B:
@@ -290,7 +343,7 @@ void loop()
                 digitalWrite(LED_G_PIN, HIGH);  
                 digitalWrite(LED_H_PIN, LOW);
                 digitalWrite(LED_I_PIN, LOW);
-                digitalWrite(LED_J_PIN, LOW);                  
+                //digitalWrite(LED_J_PIN, LOW);                  
                 break;
                 
             case MODE_LEVEL_C:
@@ -298,7 +351,7 @@ void loop()
                 digitalWrite(LED_G_PIN, HIGH);  
                 digitalWrite(LED_H_PIN, HIGH);
                 digitalWrite(LED_I_PIN, LOW);
-                digitalWrite(LED_J_PIN, LOW);                  
+                //digitalWrite(LED_J_PIN, LOW);                  
                 break;
                 
             case MODE_LEVEL_D:
@@ -306,7 +359,7 @@ void loop()
                 digitalWrite(LED_G_PIN, HIGH);  
                 digitalWrite(LED_H_PIN, HIGH);
                 digitalWrite(LED_I_PIN, HIGH); 
-                digitalWrite(LED_J_PIN, LOW);                  
+                //digitalWrite(LED_J_PIN, LOW);                  
                 break;                
                 
             case MODE_LEVEL_E:
@@ -314,7 +367,7 @@ void loop()
                 digitalWrite(LED_G_PIN, HIGH);  
                 digitalWrite(LED_H_PIN, HIGH);
                 digitalWrite(LED_I_PIN, HIGH); 
-                digitalWrite(LED_J_PIN, HIGH);  
+                //digitalWrite(LED_J_PIN, HIGH);  
                 break;                
                 
             default:        
@@ -322,7 +375,7 @@ void loop()
                 digitalWrite(LED_G_PIN, LOW);  
                 digitalWrite(LED_H_PIN, LOW);
                 digitalWrite(LED_I_PIN, LOW);  
-                digitalWrite(LED_J_PIN, LOW);                  
+                //digitalWrite(LED_J_PIN, LOW);                  
                 break;
         } // switch (mode_level)
     } // if (sample_id == 0 )    
