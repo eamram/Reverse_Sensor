@@ -28,9 +28,9 @@
 // General
 #define MAX_DISTANCE           400  // [cm]
 #define DISTANCE_LEVEL_A        40//50  // [cm]
-#define DISTANCE_LEVEL_B        40  // [cm]
-#define DISTANCE_LEVEL_C        30  // [cm]
-#define DISTANCE_LEVEL_D        20  // [cm]
+#define DISTANCE_LEVEL_B        30  // [cm]
+#define DISTANCE_LEVEL_C        20  // [cm]
+#define DISTANCE_LEVEL_D        10  // [cm]
 #define DISTANCE_LEVEL_E        10  // [cm]
 #define DISPLAY_DIST_GAP         5  // [cm]
 #define SERIAL_COM_RATE     115200
