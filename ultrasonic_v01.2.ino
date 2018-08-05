@@ -27,11 +27,11 @@
 
 // General
 #define MAX_DISTANCE           400  // [cm]
-#define DISTANCE_LEVEL_A        40//50  // [cm]
-#define DISTANCE_LEVEL_B        30  // [cm]
-#define DISTANCE_LEVEL_C        20  // [cm]
-#define DISTANCE_LEVEL_D        10  // [cm]
-#define DISTANCE_LEVEL_E        10  // [cm]
+#define DISTANCE_LEVEL_A        50//50  // [cm]
+#define DISTANCE_LEVEL_B        40  // [cm]
+#define DISTANCE_LEVEL_C        30  // [cm]
+#define DISTANCE_LEVEL_D        20  // [cm]
+#define DISTANCE_LEVEL_E        20  // [cm]
 #define DISPLAY_DIST_GAP         5  // [cm]
 #define SERIAL_COM_RATE     115200
 #define SONAR_SAMPLE_TIME       50 // [mSec]
@@ -75,7 +75,9 @@ unsigned long AccelReadTime,
               AccelLastInitTime,
               CurTime;
 int DispalyEnableFlag;
-int IgnoreAccelFlag;
+int IgnoreAccelFlag,
+    RightSideOutOfRangeFlag,
+    LeftSideOutOfRangeFlag;
 
 ///////////////////////////////////////////////////////
 //                SETUP()                            //
@@ -112,8 +114,29 @@ void loop()
     dist_a[sample_id] = sonar_a.ping_cm();
     dist_b[sample_id]= sonar_b.ping_cm();
     dist_c[sample_id]= sonar_c.ping_cm();
-    dist_d[sample_id]= sonar_d.ping_cm();  
-    
+    dist_d[sample_id]= sonar_d.ping_cm();
+  
+    // Check for Out of Range - Right & Left Sides
+    if ( (dist_a[sample_id] == 0) && (dist_b[sample_id] == 0) )
+    {
+      RightSideOutOfRangeFlag = 1;
+      Serial.println("####### Right Side - Out Of Range ######");      
+    }
+    else
+    {
+          RightSideOutOfRangeFlag = 0;
+    }
+  
+    if ( (dist_c[sample_id] == 0) && (dist_d[sample_id] == 0) )
+    {
+      LeftSideOutOfRangeFlag = 1;
+      Serial.println("####### Left Side - Out Of Range ######");      
+    }
+    else
+    {
+          LeftSideOutOfRangeFlag = 0;
+    }  
+  
     if (accel.available())
     {
         // First, use accel.read() to read the new variables:
@@ -201,7 +224,7 @@ void loop()
             mode_level = MODE_LEVEL_A;            
         }  
         
-        if ( DispalyEnableFlag == 0 )
+        if ( DispalyEnableFlag == 0  || RightSideOutOfRangeFlag == 1 )
         {
             mode_level = MODE_LEVEL_DEF;            
         }
@@ -317,7 +340,7 @@ void loop()
             mode_level = MODE_LEVEL_A;            
         }
         
-        if ( DispalyEnableFlag == 0 )
+        if ( DispalyEnableFlag == 0 || LeftSideOutOfRangeFlag == 1)
         {
             mode_level = MODE_LEVEL_DEF;            
         }
