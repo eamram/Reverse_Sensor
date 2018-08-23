@@ -27,9 +27,9 @@
 
 // General
 #define MAX_DISTANCE           400  // [cm]
-#define DISTANCE_LEVEL_A        50//50  // [cm]
-#define DISTANCE_LEVEL_B        40  // [cm]
-#define DISTANCE_LEVEL_C        30  // [cm]
+#define DISTANCE_LEVEL_A        80//50  // [cm]
+#define DISTANCE_LEVEL_B        60  // [cm]
+#define DISTANCE_LEVEL_C        40  // [cm]
 #define DISTANCE_LEVEL_D        20  // [cm]
 #define DISTANCE_LEVEL_E        20  // [cm]
 #define DISPLAY_DIST_GAP         5  // [cm]
@@ -78,7 +78,9 @@ int DispalyEnableFlag;
 int IgnoreAccelFlag,
     RightSideOutOfRangeFlag,
     LeftSideOutOfRangeFlag;
-
+float AccelPrevX,
+      AccelPrevY,
+      AccelPrevZ;
 ///////////////////////////////////////////////////////
 //                SETUP()                            //
 ///////////////////////////////////////////////////////
@@ -101,6 +103,9 @@ void setup()
     cycle_cnt = 0;
     DispalyEnableFlag = 1;
     IgnoreAccelFlag = 0;
+    AccelPrevX = 0;
+    AccelPrevY = 0;
+    AccelPrevZ = 0;
 }
 
 
@@ -115,9 +120,12 @@ void loop()
     dist_b[sample_id]= sonar_b.ping_cm();
     dist_c[sample_id]= sonar_c.ping_cm();
     dist_d[sample_id]= sonar_d.ping_cm();
-  
+
+    Serial.print("**************** Cycle ID: ");      
+    Serial.print(cycle_cnt);      
+    Serial.println(" ****************");          
     // Check for Out of Range - Right & Left Sides
-    if ( (dist_a[sample_id] == 0) && (dist_b[sample_id] == 0) )
+    if ( (dist_a[sample_id] == 0) || (dist_b[sample_id] == 0) )
     {
       RightSideOutOfRangeFlag = 1;
       Serial.println("####### Right Side - Out Of Range ######");      
@@ -127,7 +135,7 @@ void loop()
           RightSideOutOfRangeFlag = 0;
     }
   
-    if ( (dist_c[sample_id] == 0) && (dist_d[sample_id] == 0) )
+    if ( (dist_c[sample_id] == 0) || (dist_d[sample_id] == 0) )
     {
       LeftSideOutOfRangeFlag = 1;
       Serial.println("####### Left Side - Out Of Range ######");      
@@ -144,16 +152,21 @@ void loop()
         IgnoreAccelFlag = 0;
         AccelReadTime = millis();
         Serial.print(accel.cx, 3);
-        Serial.print("\t");
-        Serial.print(accel.cy, 3);       
+        Serial.print(" \t");
+        Serial.print(accel.cy, 3);
+        Serial.print(" \t");
+        Serial.print(accel.cz, 3);        
         Serial.println();
         
         // Check for movement
-        if ( accel.cx > 0.1 ||  accel.cy > 0.1 )
+        if ( abs(AccelPrevX - accel.cx) > 0.1 ||  abs(AccelPrevY - accel.cy) > 0.1  || abs(AccelPrevZ - accel.cz) > 0.1 )
         {
-           LastMoveTime = millis();
+            LastMoveTime = millis();
             DispalyEnableFlag = 1;
         }
+        AccelPrevX = accel.cx;
+        AccelPrevY = accel.cy;        
+        AccelPrevZ = accel.cz;        
     }
     else
     {
@@ -186,7 +199,7 @@ void loop()
         // ------------------------------------
         dist_a_avg = (dist_a[0]+dist_a[1]+dist_a[2])/3;
         dist_b_avg =  (dist_b[0]+dist_b[1]+dist_b[2])/3;   
-        dist_min = min(dist_a_avg, dist_b_avg);
+        dist_min = max(dist_a_avg, dist_b_avg);
  
         // Calculate display number
         remainder = dist_min % DISPLAY_DIST_GAP;
@@ -302,7 +315,7 @@ void loop()
         // ------------------------------------
         dist_c_avg =  (dist_c[0]+dist_c[1]+dist_c[2])/3;
         dist_d_avg =  (dist_d[0]+dist_d[1]+dist_d[2])/3;        
-        dist_min = min(dist_c_avg, dist_d_avg);
+        dist_min = max(dist_c_avg, dist_d_avg);
         
         // Calculate display number
         remainder = dist_min % DISPLAY_DIST_GAP;
